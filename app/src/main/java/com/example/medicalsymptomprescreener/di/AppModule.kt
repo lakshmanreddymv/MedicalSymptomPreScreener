@@ -18,6 +18,9 @@ import com.example.medicalsymptomprescreener.domain.monitor.NetworkMonitor
 import com.example.medicalsymptomprescreener.domain.repository.FacilityRepository
 import com.example.medicalsymptomprescreener.domain.repository.SymptomRepository
 import com.example.medicalsymptomprescreener.domain.repository.TranslationRepository
+import com.example.medicalsymptomprescreener.data.api.AppCheckInterceptor
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import dagger.Binds
@@ -30,6 +33,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Singleton
 
@@ -76,13 +80,53 @@ object AppModule {
             .build()
 
     /**
+     * Provides the [AppCheckInterceptor] to dynamically retrieve and inject Firebase App Check tokens.
+     * Uses a lambda-based token provider and task awaiting for graceful degradation and full testability.
+     */
+    @Provides
+    @Singleton
+    fun provideAppCheckInterceptor(): AppCheckInterceptor =
+        AppCheckInterceptor {
+            try {
+                val appCheck = FirebaseAppCheck.getInstance()
+                val task = appCheck.getAppCheckToken(false)
+                val appCheckToken = Tasks.await(task, 5, TimeUnit.SECONDS)
+                appCheckToken.token
+            } catch (e: Exception) {
+                // Invariant: No android.util.Log in data/ or domain/ layers.
+                System.err.println("Firebase App Check token fetch failed: ${e.message}")
+                null
+            }
+        }
+
+    /**
+     * Provides a specialized [OkHttpClient] specifically for the Gemini Retrofit client,
+     * including the [AppCheckInterceptor] for cryptographic attestation.
+     */
+    @Provides
+    @Singleton
+    @Named("gemini")
+    fun provideGeminiOkHttpClient(
+        appCheckInterceptor: AppCheckInterceptor
+    ): OkHttpClient =
+        OkHttpClient.Builder()
+            .addInterceptor(appCheckInterceptor)
+            .addInterceptor(
+                HttpLoggingInterceptor().apply {
+                    level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
+                    else HttpLoggingInterceptor.Level.NONE
+                }
+            )
+            .build()
+
+    /**
      * Provides the Gemini [Retrofit] instance pointed at `generativelanguage.googleapis.com`.
      * Distinguished from the Places instance via [@Named("gemini")].
      */
     @Provides
     @Singleton
     @Named("gemini")
-    fun provideGeminiRetrofit(okHttpClient: OkHttpClient, gson: Gson): Retrofit =
+    fun provideGeminiRetrofit(@Named("gemini") okHttpClient: OkHttpClient, gson: Gson): Retrofit =
         Retrofit.Builder()
             .baseUrl("https://generativelanguage.googleapis.com/")
             .client(okHttpClient)

@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0.0] - 2026-05-20
+
+### Added
+- Firebase App Check integration to protect the Gemini 2.5 Flash REST API endpoint from unauthorized API consumption.
+- Register `PlayIntegrityAppCheckProviderFactory` for cryptographically verified production builds.
+- Configure `DebugAppCheckProviderFactory` strictly for debug build environments.
+- Introduce `AppCheckInterceptor` with high testability via decoupled constructor token provider lambda.
+- Graceful error degradation and robust exception handling (logging warnings via `System.err` to comply with zero `android.util.Log` inside `data`/`domain` package rules).
+- 3 new JUnit unit tests in `AppCheckInterceptorTest` covering successful token injection, null/empty token gracefully passing requests, and error/exception tolerance.
+- Custom `@Named("gemini")` OkHttpClient inside `AppModule.kt` to target App Check token attestation exclusively to Gemini API calls, keeping Google Places API unaffected.
+- Fallback manifest placeholder mapping `manifestPlaceholders["mapsapikey"] = "PLACEHOLDER"` inside `app/build.gradle.kts` defaultConfig to fix unit test manifest merging issues without affecting production environment values.
+
 ## [1.1.0.0] - 2026-05-02
 
 ### Added

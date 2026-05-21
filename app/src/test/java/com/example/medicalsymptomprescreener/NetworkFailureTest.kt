@@ -297,7 +297,7 @@ class NetworkFailureTest {
     @Test
     fun `non-emergency symptoms exactly at 1000 chars — offline returns URGENT fallback`() = runTest {
         whenever(networkMonitor.isConnectedNow()).thenReturn(false)
-        val symptoms = "mild headache ".repeat(71).take(1000)
+        val symptoms = "mild headache ".repeat(72).take(1000)
         assertEquals(1000, symptoms.length)
 
         val result = useCase.triage(symptoms).getOrThrow()
