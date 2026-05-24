@@ -6,9 +6,9 @@ Safety-critical Android app built to demonstrate defense-in-depth AI architectur
 [![CI](https://github.com/lakshmanreddymv-bot/MedicalSymptomPreScreener/actions/workflows/ci.yml/badge.svg)](https://github.com/lakshmanreddymv-bot/MedicalSymptomPreScreener/actions/workflows/ci.yml)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-blue)](https://kotlinlang.org)
 [![Android](https://img.shields.io/badge/Android-26%2B-green)](https://developer.android.com)
-[![Gemini API](https://img.shields.io/badge/Gemini-2.5%20Flash-orange)](https://aistudio.google.com)
+[![Gemini API](https://img.shields.io/badge/Gemini-3.5%20Flash-orange)](https://aistudio.google.com)
 [![Google Maps](https://img.shields.io/badge/Maps-Places%20API%20v1-red)](https://developers.google.com/maps)
-[![Tests](https://img.shields.io/badge/Tests-108%20passing-brightgreen)](app/src/test)
+[![Tests](https://img.shields.io/badge/Tests-148%20passing-brightgreen)](app/src/test)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 **Project 4 of 4 in a portfolio of real-world AI Android apps.**
@@ -54,7 +54,7 @@ Safety-critical Android app built to demonstrate defense-in-depth AI architectur
 
 - **Three-layer defense-in-depth safety architecture** — deterministic safety overrides AI
 - **Voice symptom input** with real-time transcript display (Android SpeechRecognizer)
-- **Gemini 2.5 Flash AI triage** — advisory layer only, temperature 0.1 for consistency
+- **Gemini 3.5 Flash AI triage** — advisory layer only, temperature 0.1 for consistency
 - **Google Maps nearby facilities** — Places API v1, urgency-mapped type search
 - **Dedicated guidance for telehealth/home care** — no misleading empty map for virtual care
 - **Offline safe** — URGENT minimum returned when no network (Layer 1 still runs)
@@ -81,7 +81,7 @@ flowchart TD
     F -->|No| G["🟠 URGENT fallback\n(Layer 1 still ran)"]
     F -->|Yes| H
 
-    subgraph Layer2 ["Gemini 2.5 Flash (advisory)"]
+    subgraph Layer2 ["Gemini 3.5 Flash (advisory)"]
         H[AI triage call\ntemperature=0.1, JSON output]
     end
 
@@ -118,7 +118,7 @@ flowchart LR
         A2["TemporalDetector\nsuddenly + amber term → URGENT floor"]
     end
 
-    subgraph L2 ["Gemini 2.5 Flash"]
+    subgraph L2 ["Gemini 3.5 Flash"]
         direction TB
         B1["Advisory triage\ntemperature=0.1\nJSON schema enforced"]
     end
@@ -137,7 +137,7 @@ flowchart LR
 | Layer | Component | Type | Role | Tests |
 |---|---|---|---|---|
 | 1 | EmergencySymptomMatcher | Deterministic | Fires before any AI call. EMERGENCY = immediate, no network. | 25 |
-| 2 | Gemini 2.5 Flash | Advisory AI | Complex symptom assessment. Temperature 0.1. Single-turn only. | — |
+| 2 | Gemini 3.5 Flash | Advisory AI | Complex symptom assessment. Temperature 0.1. Single-turn only. | — |
 | 3 | TriageRuleEngine | Post-AI Validator | Catches AI under-triaging. Hedging + anatomical term checks. | 16 |
 
 ---
@@ -188,7 +188,7 @@ sequenceDiagram
     participant VM as InputViewModel
     participant UC as TriageSymptomUseCase
     participant Safety as EmergencySymptomMatcher
-    participant AI as Gemini 2.5 Flash
+    participant AI as Gemini 3.5 Flash
     participant Rule as TriageRuleEngine
     participant Shared as SharedTriageViewModel
 
@@ -233,7 +233,7 @@ sequenceDiagram
 | Language | Kotlin 2.2.10 |
 | UI | Jetpack Compose + Material 3 |
 | Architecture | Clean Architecture + MVVM + Hilt 2.59.1 |
-| AI / Triage | Gemini 2.5 Flash (v1beta) via Retrofit |
+| AI / Triage | Gemini 3.5 Flash (v1beta) via Retrofit |
 | Maps | Google Maps Compose + Places API v1 |
 | Voice Input | Android SpeechRecognizer (built-in) |
 | Text-to-Speech | Android TextToSpeech (built-in) |
@@ -276,10 +276,10 @@ maps.api.key=YOUR_MAPS_API_KEY
 ```bash
 ./gradlew assembleDebug        # build debug APK
 ./gradlew installDebug         # install on connected device or emulator
-./gradlew test                 # run all 108 unit tests
+./gradlew test                 # run all 148 unit tests
 ```
 
-**No API keys needed for safety layer testing.** The 108 unit tests mock the Gemini API.
+**No API keys needed for safety layer testing.** The 148 unit tests mock the Gemini API.
 `local.defaults.properties` provides `PLACEHOLDER` values for CI builds.
 
 ---
@@ -294,11 +294,15 @@ maps.api.key=YOUR_MAPS_API_KEY
 | TriageSymptomUseCaseTest | 12 | Gemini down, offline fallback, full-string Layer 1 invariant |
 | FacilitiesFailureModeTest | 7 | TELEHEALTH/HOME_CARE skip logic, all care type routing |
 | GeminiCacheTest | 6 | LRU hit/miss, TTL expiry, LRU eviction, 200-char key boundary |
-| LanguagePreferenceDataStoreTest | — | DataStore read/write, default English, persistence |
-| SettingsViewModelTest | — | Toggle state, DataStore write, UDF flow |
-| SharedTriageViewModelTranslationTest | — | Spanish translation, EMERGENCY skip, English fallback |
-| TranslationRepositoryImplTest | — | ML Kit success path, fallback on failure |
-| **Total** | **108** | **0 failures** |
+| LanguagePreferenceDataStoreTest | 6 | DataStore read/write, default English, persistence |
+| SettingsViewModelTest | 7 | Toggle state, DataStore write, UDF flow |
+| SharedTriageViewModelTranslationTest | 12 | Spanish translation, EMERGENCY skip, English fallback |
+| TranslationRepositoryImplTest | 10 | ML Kit success path, fallback on failure |
+| AccessibilityTest | 14 | WCAG 2.1 AA source scan — null contentDescriptions on interactive icons, 911 button regression guard, bilingual labels |
+| AppCheckInterceptorTest | 3 | OkHttp interceptor attaches App Check token to all Gemini API requests |
+| NetworkFailureTest | 23 | DNS/socket errors, HTTP 429/500/503, malformed JSON; Layer 1 EMERGENCY invariant under all network failures |
+| ExampleUnitTest | 1 | JVM test harness sanity check |
+| **Total** | **148** | **0 failures** |
 
 `UrgencyLevelOrderingTest` is the sentinel — if anyone reorders the `UrgencyLevel` enum
 (e.g. for readability), this test fails immediately with a clear message before production code is affected.
